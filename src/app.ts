@@ -1,44 +1,47 @@
 import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import path from 'path';
-import authRoutes from './routes/authRoutes';
-import userRoutes from './routes/userRoutes';
+import dotenv from 'dotenv';
+import { createClient } from 'redis';
+import { authMiddleware } from './middleware/authMiddleware';
 import chatRoutes from './routes/chatRoutes';
+import authRoutes from './routes/authRoutes';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/chat', chatRoutes);
-
-// Root Route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+const redisClient = createClient({
+    url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+    username: process.env.REDIS_USERNAME,
+    password: process.env.REDIS_PASSWORD,
 });
 
-// Chat Route
-app.get('/chat.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/chat.html'));
-});
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || '', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-}).then(() => {
-    console.log('Connected to MongoDB');
+redisClient.connect().then(() => {
+    console.log('Connected to Redis');
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
     });
 }).catch((error) => {
-    console.error('MongoDB connection error:', error);
+    console.error('Redis connection error:', error);
+});
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+app.get('/chat.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/chat.html'));
 });

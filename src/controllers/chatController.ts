@@ -1,5 +1,18 @@
 import { Request, Response } from 'express';
 import { ChatService } from '../services/chatService';
+import { createClient } from 'redis';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const redisClient = createClient({
+    url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+    password: process.env.REDIS_PASSWORD,
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+redisClient.connect();
 
 export class ChatController {
     private chatService: ChatService;
@@ -13,26 +26,35 @@ export class ChatController {
             const messages = await this.chatService.getMessages();
             res.status(200).json(messages);
         } catch (error) {
-            if (error instanceof Error) {
-                res.status(400).json({ message: error.message });
-            } else {
-                res.status(400).json({ message: 'An unknown error occurred' });
-            }
+            res.status(400).json({ message: (error as Error).message });
         }
     };
 
     public sendMessage = async (req: Request, res: Response): Promise<void> => {
-        const { text } = req.body;
+        const { text, imageId } = req.body;
         const { username } = req.user!;
         try {
-            const message = await this.chatService.sendMessage(username, text);
+            const message = await this.chatService.sendMessage(username, text, imageId);
             res.status(201).json(message);
         } catch (error) {
-            if (error instanceof Error) {
-                res.status(400).json({ message: error.message });
-            } else {
-                res.status(400).json({ message: 'An unknown error occurred' });
+            res.status(400).json({ message: (error as Error).message });
+        }
+    };
+
+    public getImage = async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        try {
+            const fileData = await redisClient.get(id);
+            if (!fileData) {
+                res.status(404).json({ message: 'Image not found' });
+                return;
             }
+            const file = JSON.parse(fileData);
+            const buffer = Buffer.from(file.buffer, 'base64');
+            res.setHeader('Content-Type', file.mimetype);
+            res.send(buffer);
+        } catch (error) {
+            res.status(400).json({ message: (error as Error).message });
         }
     };
 }
