@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+<body>
+    <h1>Chat Room</h1>
+    <div id="messages"></div>
+    <form id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message" required>
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('You must be logged in to access the chat');
+            window.location.href = '/';
+        }
+
+        async function fetchMessages() {
+            const response = await fetch('/api/chat/messages', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const messages = await response.json();
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            messages.forEach(message => {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = `${message.username}: ${message.text}`;
+                messagesDiv.appendChild(messageElement);
+            });
+        }
+
+        document.getElementById('message-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value;
+            await fetch('/api/chat/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ text: message })
+            });
+            messageInput.value = '';
+            fetchMessages();
+        });
+
+        fetchMessages();
+        setInterval(fetchMessages, 5000); // Fetch messages every 5 seconds
+    </script>
+</body>
+</html>
