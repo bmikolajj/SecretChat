@@ -13,15 +13,25 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
 
 redisClient.connect();
 
+interface Message {
+    id: string;
+    username: string;
+    text: string;
+    createdAt: Date;
+    isCampfire: boolean;
+    imageId?: string;
+}
+
 export class ChatService {
     public async getMessages() {
-        const messages = await redisClient.lRange('messages', 0, -1);
+        const messages = await redisClient.lRange('messages', 0, -1); 
         return messages.map((message) => JSON.parse(message));
     }
 
-    public async sendMessage(username: string, text: string, imageId?: string) {
-        const message = { id: uuidv4(), username, text, imageId, createdAt: new Date() };
+    public async sendMessage(username: string, text: string, imageId?: string, isCampfire?: boolean) {
+        const message: Message = { id: uuidv4(), username, text, createdAt: new Date(), isCampfire: isCampfire || false, imageId };
         await redisClient.rPush('messages', JSON.stringify(message));
+        console.log('Stored message:', message); 
         return message;
     }
 }

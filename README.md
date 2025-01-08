@@ -1,60 +1,56 @@
-# Chat Application
+# SecretChat 🚀
 
-This is a chat application that allows two or more users to communicate in real-time. Users can register, log in, send messages, and share images. The application is built using TypeScript, Express, and MongoDB.
+## Opis 📖
 
-## Features
+Aplikacja SecretChat to prosty czat internetowy, który umożliwia użytkownikom wysyłanie wiadomości tekstowych oraz obrazków. Aplikacja obsługuje również specjalne wiadomości z ogniskiem, które mogą zmieniać się w popiół po osiągnięciu określonego progu. Dodatkowo możliwe jest czatowanie z użytkownikiem po podaniu jego nazwy - jeżeli użytkownik o podanej nazwie nie istnieje, pokój czatu jest tworzony bez takowej informacji w celu zapewnienia pełnej anonimowości użytkownikom. Wszystkie pliki (obrazki) usuwane są z serwerów po upływie 24 godzin, chyba, że użytkownik zdecyduje ustawić ten czas na krótszy.
 
-- User registration and login system
-- Real-time messaging between users
-- Ability to send and receive images
-- User profile management
-- Chat history retrieval
+## Funkcje ✨
 
-## Technologies Used
+- Wysyłanie wiadomości tekstowych 💬
+- Wysyłanie obrazków 🖼️
+- Specjalne wiadomości z ogniskiem 🔥
+- Wiadomości prywatne
 
-- TypeScript
+## Technologie 🛠️
+
 - Node.js
-- Express
-- MongoDB
-- Mongoose
-- Bcrypt for password hashing
-- JSON Web Tokens (JWT) for authentication
+- Express.js
+- TypeScript
+- Redis
+- Multer
+- Canvas
+- Dotenv
+- JSON Web Token (JWT)
+- UUID
 
-## Installation
+## Instalacja 📦
 
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   ```
+1. Sklonuj repozytorium:
+    ```sh
+    git clone https://github.com/twoje-repozytorium/chat-app.git
+    cd chat-app
+    ```
 
-2. Navigate to the project directory:
-   ```
-   cd chat-app
-   ```
+2. Zainstaluj zależności:
+    ```sh
+    npm install
+    ```
 
-3. Install the dependencies:
-   ```
-   npm install
-   ```
+3. Skonfiguruj plik `.env`:
+    ```plaintext
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+    REDIS_PASSWORD=twoje-haslo
+    JWT_SECRET=twoj-sekret
+    ```
 
-4. Set up your MongoDB database and update the connection string in the application.
+4. Uruchom aplikację:
+    ```sh
+    npm start
+    ```
 
-5. Start the application:
-   ```
-   npm start
-   ```
+## Korzystanie z aplikacji lokalnie 🚀
 
-## Usage
-
-- Register a new user by sending a POST request to `/api/auth/register`.
-- Log in by sending a POST request to `/api/auth/login`.
-- Send messages using the `/api/chat/send` endpoint.
-- Retrieve chat history with a GET request to `/api/chat/history`.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or features.
-
-## License
-
-This project is licensed under the MIT License.
+1. Otwórz przeglądarkę i przejdź do `http://localhost:3000`.
+2. Zaloguj się lub zarejestruj nowe konto.
+3. Rozpocznij czatowanie! 💬

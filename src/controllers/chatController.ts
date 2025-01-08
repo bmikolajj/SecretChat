@@ -26,17 +26,20 @@ export class ChatController {
             const messages = await this.chatService.getMessages();
             res.status(200).json(messages);
         } catch (error) {
+            console.error('Error fetching messages:', error); 
             res.status(400).json({ message: (error as Error).message });
         }
     };
 
     public sendMessage = async (req: Request, res: Response): Promise<void> => {
-        const { text, imageId } = req.body;
+        const { text, isCampfire, imageId } = req.body;
         const { username } = req.user!;
         try {
-            const message = await this.chatService.sendMessage(username, text, imageId);
+            const message = await this.chatService.sendMessage(username, text, imageId, isCampfire === 'true');
+            console.log('Sent message:', message);
             res.status(201).json(message);
         } catch (error) {
+            console.error('Error sending message:', error); 
             res.status(400).json({ message: (error as Error).message });
         }
     };
@@ -51,9 +54,10 @@ export class ChatController {
             }
             const file = JSON.parse(fileData);
             const buffer = Buffer.from(file.buffer, 'base64');
-            res.setHeader('Content-Type', file.mimetype);
+            res.set('Content-Type', file.mimetype);
             res.send(buffer);
         } catch (error) {
+            console.error('Error fetching image:', error); // Add logging
             res.status(400).json({ message: (error as Error).message });
         }
     };
