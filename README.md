@@ -1,4 +1,4 @@
-# SecretChat 🚀
+# SecretChat 🔑💬
 
 ## Opis 📖
 
@@ -6,10 +6,10 @@ Aplikacja SecretChat to prosty czat internetowy, który umożliwia użytkownikom
 
 ## Funkcje ✨
 
-- Wysyłanie wiadomości tekstowych 💬
+- Wysyłanie wiadomości tekstowych 📤
 - Wysyłanie obrazków 🖼️
 - Specjalne wiadomości z ogniskiem 🔥
-- Wiadomości prywatne
+- Wiadomości prywatne 🔒
 
 ## Technologie 🛠️
 
@@ -38,15 +38,16 @@ Aplikacja SecretChat to prosty czat internetowy, który umożliwia użytkownikom
 
 3. Skonfiguruj plik `.env`:
     ```plaintext
-    REDIS_HOST=localhost
-    REDIS_PORT=6379
+    REDIS_HOST=adres-redisa
+    REDIS_PORT=port-redisa
     REDIS_PASSWORD=twoje-haslo
     JWT_SECRET=twoj-sekret
     ```
 
-4. Uruchom aplikację:
+4. Build i uruchomienie aplikacji:
     ```sh
-    npm start
+    npx tsc
+    node dist/app.js
     ```
 
 ## Korzystanie z aplikacji lokalnie 🚀
@@ -54,3 +55,6 @@ Aplikacja SecretChat to prosty czat internetowy, który umożliwia użytkownikom
 1. Otwórz przeglądarkę i przejdź do `http://localhost:3000`.
 2. Zaloguj się lub zarejestruj nowe konto.
 3. Rozpocznij czatowanie! 💬
+
+## Prezentacja aplikacji 🎥💻
+    TBD

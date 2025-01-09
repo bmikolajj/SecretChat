@@ -13,13 +13,17 @@
         <form id="message-form" class="chat-form">
             <input type="text" id="message-input" placeholder="Type a message">
             <input type="file" id="image-input" accept="image/*">
-            <input type="number" id="expiry-hours" placeholder="Expiry time in hours" min="0" max="23">
-            <input type="number" id="expiry-minutes" placeholder="Expiry time in minutes" min="0" max="59">
+            <input type="number" id="expiry-hours" class="expiry" placeholder="Expiry hours" min="0" max="23" >
+            <input type="number" id="expiry-minutes" class="expiry" placeholder="Expiry minutes" min="0" max="59">
             <div class="button-group">
                 <button type="submit">Send</button>
                 <button type="button" id="send-campfire">🔥</button>
             </div>
         </form>
+        <div class="private-room-container">
+            <input type="text" id="private-room" placeholder="@username to private chat">
+            <button type="button" id="create-private-room">Open private chat</button>
+        </div>
     </div>
 
     <script>
@@ -34,26 +38,80 @@
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const messages = await response.json();
+            console.log('Fetched messages:', messages);
             const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML = '';
-            messages.forEach(message => {
-                const messageElement = document.createElement('div');
-                messageElement.classList.add('chat-message');
-                const timestamp = new Date(message.createdAt).toLocaleString();
-                const textElement = document.createElement('div');
-                textElement.innerHTML = `<span class="username">${message.username || 'System'}</span> <span class="timestamp">${timestamp}</span>: ${message.text || ''}`;
-                messageElement.appendChild(textElement);
-                if (message.imageId) {
-                    const img = document.createElement('img');
-                    img.src = `/api/chat/images/${message.imageId}`;
-                    img.alt = 'Image';
-                    messageElement.appendChild(img);
-                }
-                messagesDiv.appendChild(messageElement);
-            });
-            scrollToBottom();
-        }
 
+            // Create a map of current messages
+            const currentMessages = new Map();
+            messagesDiv.childNodes.forEach(node => {
+                if (node.dataset && node.dataset.messageId) {
+                    currentMessages.set(node.dataset.messageId, node);
+                }
+            });
+
+            // Update messages
+            for (const message of messages) {
+                let messageElement = currentMessages.get(message.id);
+                if (!messageElement) {
+                    messageElement = document.createElement('div');
+                    messageElement.classList.add('chat-message');
+                    messageElement.dataset.messageId = message.id;
+                    messagesDiv.appendChild(messageElement);
+                }
+
+                const timestamp = new Date(message.createdAt).toLocaleString();
+                const textContent = `<span class="username">${message.username || 'System'}</span> <span class="timestamp">${timestamp}</span>: ${message.text || ''}`;
+                let textElement = messageElement.querySelector('.text');
+                if (!textElement) {
+                    textElement = document.createElement('div');
+                    textElement.classList.add('text');
+                    messageElement.appendChild(textElement);
+                }
+                if (textElement.innerHTML !== textContent) {
+                    textElement.innerHTML = textContent;
+                }
+
+                if (message.imageId) {
+                    let img = messageElement.querySelector('img');
+                    if (!img) {
+                        img = document.createElement('img');
+                        img.alt = 'Image';
+                        messageElement.appendChild(img);
+                    }
+                    const imgSrc = `/api/chat/images/${message.imageId}`;
+                    if (img.src !== imgSrc) {
+                        img.src = imgSrc;
+                    }
+                    if (!message.isCampfire) {
+                        // Fetch and display TTL for the image
+                        const ttlResponse = await fetch(`/api/chat/images/ttl/${message.imageId}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const ttl = await ttlResponse.json();
+                        const ttlHours = (ttl / 3600).toFixed(2);
+                        let ttlElement = messageElement.querySelector('.ttl');
+                        if (!ttlElement) {
+                            ttlElement = document.createElement('div');
+                            ttlElement.classList.add('ttl');
+                            messageElement.appendChild(ttlElement);
+                        }
+                        const ttlText = `Expires in: ${ttlHours} hours`;
+                        if (ttlElement.textContent !== ttlText) {
+                            ttlElement.textContent = ttlText;
+                        }
+                    }
+                }
+
+                // Remove the message from the current messages map
+                currentMessages.delete(message.id);
+            }
+
+            // Remove any messages that are no longer present
+            currentMessages.forEach(node => {
+                messagesDiv.removeChild(node);
+            });
+        }
+        
         function scrollToBottom() {
         const messagesDiv = document.getElementById('messages');
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -111,12 +169,10 @@
         }
 
         function doCampfireStuff(campfireMessage) {
-            // Play campfire sound
             const audio = new Audio('campfire-sound.mp3');
             audio.play();
 
             if (campfireMessage.isCampfire) {
-                // Save updated image to the server
                 fetch(`/api/chat/images/${campfireMessage.imageId}`, {
                     method: 'PUT',
                     headers: {
@@ -136,8 +192,9 @@
                 }).catch(error => {
                     console.error('Error updating campfire image:', error);
                 });
-                }
             }
+
+        }
 
         document.getElementById('send-campfire').addEventListener('click', async () => {
             const campfireMessage = await checkForExistingCampfireMessage();
@@ -173,6 +230,27 @@
                 body: formData
             });
 
+            fetchMessages();
+        });
+
+        document.getElementById('create-private-room').addEventListener('click', async () => {
+            const privateRoomInput = document.getElementById('private-room');
+            const privateRoomUsername = privateRoomInput.value.trim();
+            if (!privateRoomUsername) {
+                alert('Please enter a username for the private room.');
+                return;
+            }
+
+            await fetch('/api/chat/private-room', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ privateRoomUsername })
+            });
+
+            privateRoomInput.value = '';
             fetchMessages();
         });
 

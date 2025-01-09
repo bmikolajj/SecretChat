@@ -59,8 +59,8 @@ body {
 }
 
 .chat-message img.campfire {
-    max-width: 50px; /* Adjust the size as needed */
-    max-height: 50px; /* Adjust the size as needed */
+    max-width: 50px;
+    max-height: 50px; 
 }
 
 .chat-form, .login-form {
@@ -97,4 +97,14 @@ body {
 
 .chat-form button:hover, .login-form button:hover {
     background-color: #0056b3;
+}
+
+.expiry {
+    width: 120px;
+}
+.private-room-container {
+    margin-top: 10px;
+}
+.private-room-container input {
+    width: 200px;
 }
