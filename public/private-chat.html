@@ -200,7 +200,11 @@
                 throw new Error('Failed to create private room');
             }
 
-            const { id } = await response.json();
+            const data = await response.json();
+            const id = data.id;
+            if (!id) {
+                throw new Error('Room ID is undefined');
+            }
             window.location.href = `/private-chat.html?roomId=${id}`;
             } catch (error) {
                 console.error('Error creating private room:', error);
