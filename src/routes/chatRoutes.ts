@@ -20,7 +20,9 @@ const router = Router();
 const chatController = new ChatController();
 
 router.get('/messages', authMiddleware, chatController.getMessages);
+router.get('/messages/room/:id', authMiddleware, chatController.getPrivateMessages);
 router.post('/messages', authMiddleware, uploadToRedis, chatController.sendMessage);
+router.post('/messages/room/:id', authMiddleware, uploadToRedis, chatController.sendMessage);
 router.get('/images/:id', chatController.getImage);
 router.put('/images/:id', authMiddleware, updateImageInRedis);
 router.get('/images/ttl/:id', authMiddleware, async (req: Request, res: Response) => {
@@ -36,5 +38,7 @@ router.get('/images/ttl/:id', authMiddleware, async (req: Request, res: Response
         res.status(500).json({ message: 'Error fetching TTL' });
     }
 });
+
+router.post('/private-room', authMiddleware, chatController.createPrivateRoom);
 
 export default router;

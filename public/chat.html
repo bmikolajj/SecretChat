@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">Chat Room</div>
+        <div class="chat-header">Public Chat Room</div>
         <div id="messages" class="chat-messages"></div>
         <form id="message-form" class="chat-form">
             <input type="text" id="message-input" placeholder="Type a message">
@@ -32,6 +32,9 @@
             alert('You must be logged in to access the chat');
             window.location.href = '/';
         }
+
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const username = payload.username;
 
         async function fetchMessages() {
             const response = await fetch('/api/chat/messages', {
@@ -235,23 +238,37 @@
 
         document.getElementById('create-private-room').addEventListener('click', async () => {
             const privateRoomInput = document.getElementById('private-room');
-            const privateRoomUsername = privateRoomInput.value.trim();
-            if (!privateRoomUsername) {
+            const receiver = privateRoomInput.value.trim();
+
+            if (!receiver) {
                 alert('Please enter a username for the private room.');
                 return;
             }
 
-            await fetch('/api/chat/private-room', {
+            if (receiver === username) {
+                alert('You cannot create a private room with yourself.');
+                return;
+            }
+
+            try {
+            const response = await fetch('/api/chat/private-room', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ privateRoomUsername })
+                body: JSON.stringify({ receiver })
             });
 
-            privateRoomInput.value = '';
-            fetchMessages();
+            if (!response.ok) {
+                throw new Error('Failed to create private room');
+            }
+
+            const { id } = await response.json();
+            window.location.href = `/private-chat.html?roomId=${id}`;
+            } catch (error) {
+                console.error('Error creating private room:', error);
+            }
         });
 
         fetchMessages();

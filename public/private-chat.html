@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Private Chat Room</div>
+        <div id="messages" class="chat-messages"></div>
+        <form id="message-form" class="chat-form">
+            <input type="text" id="message-input" placeholder="Type a message">
+            <input type="file" id="image-input" accept="image/*">
+            <div class="button-group">
+                <button type="submit">Send</button>
+            </div>
+        </form>
+        <div class="private-room-container">
+            <input type="text" id="private-room" placeholder="@username to private chat">
+            <button type="button" id="create-private-room">Open private chat</button>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('You must be logged in to access the chat');
+            window.location.href = '/';
+        }
+
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const username = payload.username;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('roomId');
+
+        async function fetchMessages() {
+            try {
+                const response = await fetch(`/api/chat/messages/room/${roomId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch messages');
+                }
+                const messages = await response.json();
+                console.log('Fetched messages:', messages);
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = '';
+
+                for (const message of messages) {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('chat-message');
+                    messageElement.dataset.messageId = message.id;
+
+                    const timestamp = new Date(message.createdAt).toLocaleString();
+                    const textContent = `<span class="username">${message.username || 'System'}</span> <span class="timestamp">${timestamp}</span>: ${message.text || ''}`;
+                    const textElement = document.createElement('div');
+                    textElement.classList.add('text');
+                    textElement.innerHTML = textContent;
+                    messageElement.appendChild(textElement);
+
+                    if (message.imageId) {
+                        const img = document.createElement('img');
+                        img.alt = 'Image';
+                        img.src = `/api/chat/images/${message.imageId}`;
+                        messageElement.appendChild(img);
+                    }
+
+                    messagesDiv.appendChild(messageElement);
+                }
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        }
+
+        function scrollToBottom() {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        document.getElementById('message-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const messageInput = document.getElementById('message-input');
+            const imageInput = document.getElementById('image-input');
+            const formData = new FormData();
+            const messageText = messageInput.value.trim();
+            const imageFile = imageInput.files[0];
+
+            if (!messageText && !imageFile) {
+                alert('Please enter a message or select an image.');
+                return;
+            }
+
+            if (messageText) {
+                formData.append('text', messageText);
+            }
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            try {
+                const response = await fetch(`/api/chat/messages/room/${roomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+
+                messageInput.value = '';
+                imageInput.value = '';
+                fetchMessages();
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        });
+
+        document.getElementById('create-private-room').addEventListener('click', async () => {
+            const privateRoomInput = document.getElementById('private-room');
+            const receiver = privateRoomInput.value.trim();
+
+            if (!receiver) {
+                alert('Please enter a username for the private room.');
+                return;
+            }
+
+            if (receiver === username) {
+                alert('You cannot create a private room with yourself.');
+                return;
+            }
+
+            try {
+            const response = await fetch('/api/chat/private-room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ receiver })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create private room');
+            }
+
+            const { id } = await response.json();
+            window.location.href = `/private-chat.html?roomId=${id}`;
+            } catch (error) {
+                console.error('Error creating private room:', error);
+            }
+        });
+
+        fetchMessages();
+        setInterval(fetchMessages, 2000); // Fetch messages every 2 seconds
+    </script>
+</body>
+</html>
