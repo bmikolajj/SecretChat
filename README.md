@@ -57,4 +57,4 @@ Aplikacja SecretChat to prosty czat internetowy, który umożliwia użytkownikom
 3. Rozpocznij czatowanie! 💬
 
 ## Prezentacja aplikacji 🎥💻
-    TBD
+    https://youtu.be/ghhCWN67TOI
