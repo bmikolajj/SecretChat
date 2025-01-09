@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Chat</title>
+    <title>SecretChat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,6 +13,8 @@
         <form id="message-form" class="chat-form">
             <input type="text" id="message-input" placeholder="Type a message">
             <input type="file" id="image-input" accept="image/*">
+            <input type="number" id="expiry-hours" class="expiry" placeholder="Expiry hours" min="0" max="23" >
+            <input type="number" id="expiry-minutes" class="expiry" placeholder="Expiry minutes" min="0" max="59">
             <div class="button-group">
                 <button type="submit">Send</button>
             </div>
@@ -37,42 +39,82 @@
         const roomId = urlParams.get('roomId');
 
         async function fetchMessages() {
-            try {
-                const response = await fetch(`/api/chat/messages/room/${roomId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to fetch messages');
-                }
-                const messages = await response.json();
-                console.log('Fetched messages:', messages);
-                const messagesDiv = document.getElementById('messages');
-                messagesDiv.innerHTML = '';
+            const response = await fetch(`/api/chat/messages/room/${roomId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                throw new Error('Failed to fetch messages');
+            }
+            const messages = await response.json();
+            console.log('Fetched messages:', messages);
+            const messagesDiv = document.getElementById('messages');
+            const currentMessages = new Map();
+            messagesDiv.childNodes.forEach(node => {
+            if (node.dataset && node.dataset.messageId) {
+                currentMessages.set(node.dataset.messageId, node);
+            }
+            });
 
-                for (const message of messages) {
-                    const messageElement = document.createElement('div');
+            // Update messages
+            for (const message of messages) {
+                let messageElement = currentMessages.get(message.id);
+                if (!messageElement) {
+                    messageElement = document.createElement('div');
                     messageElement.classList.add('chat-message');
                     messageElement.dataset.messageId = message.id;
-
-                    const timestamp = new Date(message.createdAt).toLocaleString();
-                    const textContent = `<span class="username">${message.username || 'System'}</span> <span class="timestamp">${timestamp}</span>: ${message.text || ''}`;
-                    const textElement = document.createElement('div');
-                    textElement.classList.add('text');
-                    textElement.innerHTML = textContent;
-                    messageElement.appendChild(textElement);
-
-                    if (message.imageId) {
-                        const img = document.createElement('img');
-                        img.alt = 'Image';
-                        img.src = `/api/chat/images/${message.imageId}`;
-                        messageElement.appendChild(img);
-                    }
-
                     messagesDiv.appendChild(messageElement);
                 }
-            } catch (error) {
-                console.error('Error fetching messages:', error);
+
+                const timestamp = new Date(message.createdAt).toLocaleString();
+                const textContent = `<span class="username">${message.username || 'System'}</span> <span class="timestamp">${timestamp}</span>: ${message.text || ''}`;
+                let textElement = messageElement.querySelector('.text');
+                if (!textElement) {
+                    textElement = document.createElement('div');
+                    textElement.classList.add('text');
+                    messageElement.appendChild(textElement);
+                }
+                if (textElement.innerHTML !== textContent) {
+                    textElement.innerHTML = textContent;
+                }
+
+                if (message.imageId) {
+                    let img = messageElement.querySelector('img');
+                    if (!img) {
+                        img = document.createElement('img');
+                        img.alt = 'Image';
+                        messageElement.appendChild(img);
+                    }
+                    const imgSrc = `/api/chat/images/${message.imageId}`;
+                    if (img.src !== imgSrc) {
+                        img.src = imgSrc;
+                    }
+                    if (!message.isCampfire) {
+                        const ttlResponse = await fetch(`/api/chat/images/ttl/${message.imageId}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const ttl = await ttlResponse.json();
+                        const ttlHours = (ttl / 3600).toFixed(2);
+                        let ttlElement = messageElement.querySelector('.ttl');
+                        if (!ttlElement) {
+                            ttlElement = document.createElement('div');
+                            ttlElement.classList.add('ttl');
+                            messageElement.appendChild(ttlElement);
+                        }
+                        const ttlText = `Expires in: ${ttlHours} hours`;
+                        if (ttlElement.textContent !== ttlText) {
+                            ttlElement.textContent = ttlText;
+                        }
+                    }
+                }
+
+                // Remove the message from the current messages map
+                currentMessages.delete(message.id);
             }
+
+            // Remove any messages that are no longer present
+            currentMessages.forEach(node => {
+                messagesDiv.removeChild(node);
+            });
         }
 
         function scrollToBottom() {
@@ -84,9 +126,14 @@
             event.preventDefault();
             const messageInput = document.getElementById('message-input');
             const imageInput = document.getElementById('image-input');
+            const expiryHoursInput = document.getElementById('expiry-hours'); 
+            const expiryMinutesInput = document.getElementById('expiry-minutes'); 
             const formData = new FormData();
             const messageText = messageInput.value.trim();
             const imageFile = imageInput.files[0];
+            const expiryHours = parseInt(expiryHoursInput.value.trim(), 10) || 0;
+            const expiryMinutes = parseInt(expiryMinutesInput.value.trim(), 10) || 0;
+            const expiryTime = (expiryHours * 3600) + (expiryMinutes * 60);
 
             if (!messageText && !imageFile) {
                 alert('Please enter a message or select an image.');
@@ -98,6 +145,9 @@
             }
             if (imageFile) {
                 formData.append('image', imageFile);
+            }
+            if (expiryTime > 0) {
+                formData.append('expiry', expiryTime);
             }
 
             try {
@@ -114,6 +164,8 @@
 
                 messageInput.value = '';
                 imageInput.value = '';
+                expiryHoursInput.value = '';
+                expiryMinutesInput.value = '';
                 fetchMessages();
             } catch (error) {
                 console.error('Error sending message:', error);

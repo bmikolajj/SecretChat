@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat App</title>
+    <title>SecretChat</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -86,7 +86,6 @@
                         img.src = imgSrc;
                     }
                     if (!message.isCampfire) {
-                        // Fetch and display TTL for the image
                         const ttlResponse = await fetch(`/api/chat/images/ttl/${message.imageId}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -124,8 +123,8 @@
             event.preventDefault();
             const messageInput = document.getElementById('message-input');
             const imageInput = document.getElementById('image-input');
-            const expiryHoursInput = document.getElementById('expiry-hours'); // Define expiryHoursInput
-            const expiryMinutesInput = document.getElementById('expiry-minutes'); // Define expiryMinutesInput
+            const expiryHoursInput = document.getElementById('expiry-hours'); 
+            const expiryMinutesInput = document.getElementById('expiry-minutes');
             const formData = new FormData();
             const messageText = messageInput.value.trim();
             const imageFile = imageInput.files[0];
